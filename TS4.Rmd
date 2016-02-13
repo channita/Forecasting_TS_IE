@@ -1,0 +1,66 @@
+1. Loading data and libraries
+```{r}
+library(dplyr)
+library(xlsx)
+
+setwd("C:/Users/Mr.Thieu/Desktop/Channita/Big data/Term 2/Forecasting time series")
+Series4 <- read.xlsx("Series4.xlsx", 1, as.data.frame = TRUE, stringsAsFactors = FALSE)
+head(Series4)
+
+y <- as.data.frame(as.numeric(Series4[-1, -1]))
+colnames(y)<-c("price")
+
+```
+
+2. TS exploration 
+```{r}
+ts.plot(y) # Non-stationary in both mean and varience
+par(mfrow=c(2,1)) #Plot ACF and PACF together
+acf(y) # The ACF also gives us signs of non-stationarity in the level since it decays very slowly towards zero
+pacf(y) 
+adf(y)
+```
+
+3. TS transformation
+
+```{r}
+
+y$lag = lag(y$price,1) # Transforming TS into a stationary TS
+y$diff = y$price - y$lag
+ts.plot(y$diff)
+par(mfrow=c(2,1)) #Plot ACF and PACF together
+y_s <- y$diff[-1]
+acf(y_s) 
+pacf(y_s)
+```
+
+4. Fitting into the model
+
+```{r}
+fit <- arima(y$price,order=c(0,1,1)) 
+fit # Do we need an MA(1)? 
+
+ts.plot(fit$residuals)
+acf(fit$residuals) 
+pacf(fit$residuals)
+
+hist(y_s, prob=T,ylim=c(0,0.25),
+     xlim=c(mean(y_s)-3*sd(y_s), mean(y_s)+3*sd(y_s)),col="blue")                                
+lines(density(y_s),lwd=2)
+mu<-mean(y_s)
+sigma<-sd(y_s)
+
+x<-seq(mu-3*sigma,mu+3*sigma,length=100)
+yy<-dnorm(x,mu,sigma)
+lines(x,yy,lwd=2,col="green")
+```
+
+5. Prediction
+
+```{r}
+y_pred <-predict(fit,n.ahead=10)
+ts.plot(y$price)
+lines(y_pred$pred,col="red")
+lines(y_pred$pred+1.96*y.pred$se,col="red",lty=3)
+lines(y_pred$pred-1.96*y.pred$se,col="red",lty=3)
+```
